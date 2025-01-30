@@ -18,18 +18,18 @@ ENCODER_PATH = os.path.join(model_dir, "encoder.pkl")
 SCALER_PATH = os.path.join(model_dir, "scaler.pkl")
 FEATURE_PATH = os.path.join(model_dir, "featureorder.pkl")
 
-# Load model, encoder, and scaler
+# Load model, encoder, scaler, and feature order
 try:
     model = joblib.load(MODEL_PATH)
     ohe = joblib.load(ENCODER_PATH)
     scaler = joblib.load(SCALER_PATH)
-    feature_order = joblib.load(FEATURE_PATH)  # Ensure consistent order
+    feature_order = joblib.load(FEATURE_PATH)  # Ensure correct feature order
     print("✅ Model, encoder, and scaler loaded successfully!")
 except Exception as e:
     print(f"❌ Error loading model or transformers: {e}")
     exit(1)
 
-# Feature categories
+# Define feature categories
 categorical_features = ['Venue_State', 'Venue_City']
 boolean_features = [
     'Is_Midwest', 'Is_Northeast', 'Is_South', 'Is_West',
@@ -51,7 +51,8 @@ numerical_features = [
 app = Flask(__name__)
 
 def predict_time_series_for_bins(user_input):
-    """Preprocesses input, scales & encodes, ensures feature order, and makes predictions."""
+    """Processes user input, applies encoding, scaling, and makes predictions."""
+    
     bins = np.arange(0.1, 1.1, 0.1)
 
     # Convert input dictionary to DataFrame
@@ -59,35 +60,35 @@ def predict_time_series_for_bins(user_input):
 
     # Repeat input for each bin
     repeated_data = pd.concat([new_event_data_template] * len(bins), ignore_index=True)
-    repeated_data['Bin'] = np.tile(bins, len(new_event_data_template))
+    repeated_data['Bin'] = np.tile(bins, len(new_event_data_template))  # ADDING BIN
 
-    # Ensure all columns are present
+    # Ensure all required columns are present
     for col in numerical_features + boolean_features:
         if col not in repeated_data.columns:
-            repeated_data[col] = 0  # Default value for missing numerical/boolean
+            repeated_data[col] = 0  # Default for missing numerical/boolean columns
 
     for col in categorical_features:
         if col not in repeated_data.columns:
             repeated_data[col] = "Unknown"  # Default category
 
-    # Ensure feature order
-    repeated_data = repeated_data[feature_order]
+    # ENFORCE FEATURE ORDER
+    repeated_data = repeated_data[feature_order]  
 
-    # Transform input
+    # APPLY ENCODING & SCALING
     new_event_encoded = ohe.transform(repeated_data[categorical_features])
     new_event_scaled = scaler.transform(repeated_data[numerical_features + boolean_features])
     X_new = np.hstack([new_event_encoded, new_event_scaled])
 
-    # Predict
+    # Predict using the trained model
     predictions = model.predict(X_new)
 
-    # Create DataFrame with results
+    # Create DataFrame with predictions
     results_df = pd.DataFrame({
         'Bin': bins,
         'Predicted_Cumulative_Tickets_Sold': predictions
     })
 
-    return results_df, X_new  # Return both predictions & transformed inputs
+    return results_df, X_new  # Return predictions & transformed inputs for debugging
 
 def plot_predictions(results_df):
     """Generates a plot and returns the image as a base64 string."""
@@ -124,14 +125,8 @@ def index():
                 elif key in numerical_features:
                     user_input[key] = float(user_input[key])  # Convert numbers
 
-            # Ensure feature order
-            new_event_data_template = pd.DataFrame([user_input])
-            new_event_data_template = new_event_data_template[feature_order]
-
-            # Predict and transform input
+            # Predict using the updated function
             results_df, transformed_inputs = predict_time_series_for_bins(user_input)
-
-            # Generate plot
             plot_url = plot_predictions(results_df)
 
         except Exception as e:
@@ -141,3 +136,4 @@ def index():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
