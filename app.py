@@ -119,14 +119,22 @@ def index():
                 elif key in numerical_features:
                     user_input[key] = float(user_input[key])  # Convert numbers
 
-            # Get predictions and transformed inputs
-            results_df, transformed_inputs = predict_time_series_for_bins(user_input)
+            # Convert input to DataFrame and enforce column order
+            new_event_data_template = pd.DataFrame([user_input])
+            new_event_data_template = new_event_data_template[feature_order]  # Ensure correct order
+
+            # Transform input
+            new_event_encoded = ohe.transform(new_event_data_template[categorical_features])
+            new_event_scaled = scaler.transform(new_event_data_template[numerical_features + boolean_features])
+            X_new = np.hstack([new_event_encoded, new_event_scaled])
+
+            # Predict and generate results
+            results_df = pd.DataFrame({'Bin': np.arange(0.1, 1.1, 0.1), 'Predicted_Cumulative_Tickets_Sold': model.predict(X_new)})
             plot_url = plot_predictions(results_df)
 
         except Exception as e:
             return jsonify({"error": f"❌ Error processing request: {e}"}), 400
 
     return render_template("index.html", plot_url=plot_url, transformed_inputs=transformed_inputs)
-
 if __name__ == "__main__":
     app.run(debug=True)
