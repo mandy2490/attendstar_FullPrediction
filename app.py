@@ -16,7 +16,7 @@ if not os.path.exists(model_dir):
 MODEL_PATH = os.path.join(model_dir, "best_model1.pkl")
 ENCODER_PATH = os.path.join(model_dir, "encoder.pkl")
 SCALER_PATH = os.path.join(model_dir, "scaler.pkl")
-feature_order = os.path.join(model_dir, "feature_order.pkl"))
+feature_order = os.path.join(model_dir, "feature_order.pkl")
 # Load model, encoder, and scaler
 try:
     model = joblib.load(MODEL_PATH)
