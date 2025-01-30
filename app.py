@@ -28,6 +28,23 @@ try:
 except Exception as e:
     print(f"❌ Error loading model or transformers: {e}")
     exit(1)
+# Define feature categories
+categorical_features = ['Venue_State', 'Venue_City']
+boolean_features = [
+    'Is_Midwest', 'Is_Northeast', 'Is_South', 'Is_West',
+    'IsWeekend', 'IsHoliday', 'IsNextDayHoliday', 'Is_outof_CBSA_Area?'
+]
+numerical_features = [
+    'Bin', 'Event_Duration_Hours', 'Total_Tickets_Availability',
+    'Average_ticketPrice', 'Max_ticket_price', 'Min_Ticket_Price',
+    'Days_Window_Ticket_Sales', 'Total_Number_of_events_shows',
+    'Median_Household_Income(2022)', 'Total_Population', 'Male_Population_Total',
+    'Total_Male_17_and_Under', 'Total_Male_18_to_29', 'Total_Male_30_to_45',
+    'Total_Male_45_to_59', 'Total_Male_60_and_Above', 'Female_Population_Total',
+    'Total_Female_17_and_Under', 'Total_Female_18_to_29', 'Total_Female_30_to_45',
+    'Total_Female_45_to_59', 'Total_Female_60_and_Above', 'Times_Event_Happened_Here',
+    'Number_of_Days_event_hosted'
+]
 
 # Initialize Flask app
 app = Flask(__name__)
