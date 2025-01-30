@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 import numpy as np
 import pandas as pd
 import joblib
@@ -28,7 +28,7 @@ except Exception as e:
     exit(1)
 
 # Define features
-categorical_features = ['Venue_State', 'Venue_City', 'Year']
+categorical_features = ['Venue_State', 'Venue_City']
 boolean_features = [
     'Is_Midwest', 'Is_Northeast', 'Is_South', 'Is_West',
     'IsWeekend', 'IsHoliday', 'IsNextDayHoliday', 'Is_outof_CBSA_Area?'
@@ -38,7 +38,10 @@ numerical_features = [
     'Average_ticketPrice', 'Max_ticket_price', 'Min_Ticket_Price',
     'Days_Window_Ticket_Sales', 'Total_Number_of_events_shows',
     'Median_Household_Income(2022)', 'Total_Population', 'Male_Population_Total',
-    'Female_Population_Total', 'Times_Event_Happened_Here',
+    'Total_Male_17_and_Under', 'Total_Male_18_to_29', 'Total_Male_30_to_45',
+    'Total_Male_45_to_59', 'Total_Male_60_and_Above', 'Female_Population_Total',
+    'Total_Female_17_and_Under', 'Total_Female_18_to_29', 'Total_Female_30_to_45',
+    'Total_Female_45_to_59', 'Total_Female_60_and_Above', 'Times_Event_Happened_Here',
     'Number_of_Days_event_hosted'
 ]
 
@@ -79,7 +82,7 @@ def predict_time_series_for_bins(user_input):
         'Predicted_Cumulative_Tickets_Sold': predictions
     })
 
-    return results_df
+    return results_df, X_new  # Return both predictions & transformed inputs
 
 def plot_predictions(results_df):
     """Generates a plot and returns the image as a base64 string."""
@@ -101,42 +104,29 @@ def plot_predictions(results_df):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    transformed_inputs = None  # Initialize transformed inputs
+    plot_url = None  # Initialize plot URL
+
     if request.method == "POST":
-        # Extract user input
-        user_input = {
-            'Venue_City': request.form['Venue_City'],
-            'Venue_State': request.form['Venue_State'],
-            'Year': int(request.form['Year']),
-            'Is_Midwest': int(request.form.get('Is_Midwest', 0)),
-            'Is_Northeast': int(request.form.get('Is_Northeast', 0)),
-            'Is_South': int(request.form.get('Is_South', 0)),
-            'Is_West': int(request.form.get('Is_West', 0)),
-            'IsWeekend': int(request.form.get('IsWeekend', 0)),
-            'IsHoliday': int(request.form.get('IsHoliday', 0)),
-            'IsNextDayHoliday': int(request.form.get('IsNextDayHoliday', 0)),
-            'Is_outof_CBSA_Area?': int(request.form.get('Is_outof_CBSA_Area?', 0)),
-            'Event_Duration_Hours': float(request.form['Event_Duration_Hours']),
-            'Total_Tickets_Availability': int(request.form['Total_Tickets_Availability']),
-            'Average_ticketPrice': float(request.form['Average_ticketPrice']),
-            'Max_ticket_price': float(request.form['Max_ticket_price']),
-            'Min_Ticket_Price': float(request.form['Min_Ticket_Price']),
-            'Days_Window_Ticket_Sales': int(request.form['Days_Window_Ticket_Sales']),
-            'Total_Number_of_events_shows': int(request.form['Total_Number_of_events_shows']),
-            'Median_Household_Income(2022)': float(request.form['Median_Household_Income(2022)']),
-            'Total_Population': int(request.form['Total_Population']),
-            'Male_Population_Total': int(request.form['Male_Population_Total']),
-            'Female_Population_Total': int(request.form['Female_Population_Total']),
-            'Times_Event_Happened_Here': int(request.form['Times_Event_Happened_Here']),
-            'Number_of_Days_event_hosted': int(request.form['Number_of_Days_event_hosted'])
-        }
+        try:
+            # Extract user input from form
+            user_input = {key: request.form[key] for key in request.form}
 
-        # Predict
-        results_df = predict_time_series_for_bins(user_input)
-        plot_url = plot_predictions(results_df)
+            # Convert numerical & boolean inputs properly
+            for key in user_input:
+                if key in boolean_features:
+                    user_input[key] = int(user_input[key])  # Convert booleans (0/1)
+                elif key in numerical_features:
+                    user_input[key] = float(user_input[key])  # Convert numbers
 
-        return render_template("index.html", plot_url=plot_url)
+            # Get predictions and transformed inputs
+            results_df, transformed_inputs = predict_time_series_for_bins(user_input)
+            plot_url = plot_predictions(results_df)
 
-    return render_template("index.html", plot_url=None)
+        except Exception as e:
+            return jsonify({"error": f"❌ Error processing request: {e}"}), 400
+
+    return render_template("index.html", plot_url=plot_url, transformed_inputs=transformed_inputs)
 
 if __name__ == "__main__":
     app.run(debug=True)
