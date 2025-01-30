@@ -16,12 +16,13 @@ if not os.path.exists(model_dir):
 MODEL_PATH = os.path.join(model_dir, "best_model1.pkl")
 ENCODER_PATH = os.path.join(model_dir, "encoder.pkl")
 SCALER_PATH = os.path.join(model_dir, "scaler.pkl")
-feature_order = os.path.join(model_dir, "feature_order.pkl")
+FEATURE_PATH = os.path.join(model_dir, "featureorder.pkl")
 # Load model, encoder, and scaler
 try:
     model = joblib.load(MODEL_PATH)
     ohe = joblib.load(ENCODER_PATH)
     scaler = joblib.load(SCALER_PATH)
+    feature_order = joblib.load(FEATURE_PATH)
     print("✅ Model, encoder, and scaler loaded successfully!")
 except Exception as e:
     print(f"❌ Error loading model or transformers: {e}")
