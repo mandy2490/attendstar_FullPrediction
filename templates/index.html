@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Sales Prediction</title>
+</head>
+<body>
+    <h2>Enter Event Details</h2>
+    <form method="post">
+        <label>Venue City: <input type="text" name="Venue_City" required></label><br>
+        <label>Venue State: <input type="text" name="Venue_State" required></label><br>
+        <label>Year: <input type="number" name="Year" required></label><br>
+        <label>Event Duration (Hours): <input type="number" name="Event_Duration_Hours" required></label><br>
+        <label>Total Tickets Availability: <input type="number" name="Total_Tickets_Availability" required></label><br>
+        <label>Average Ticket Price: <input type="number" step="0.01" name="Average_ticketPrice" required></label><br>
+        <button type="submit">Predict</button>
+    </form>
+
+    {% if plot_url %}
+    <h3>Prediction Result</h3>
+    <img src="data:image/png;base64,{{ plot_url }}" alt="Predicted Sales">
+    {% endif %}
+</body>
+</html>
