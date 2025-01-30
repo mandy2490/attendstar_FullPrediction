@@ -17,18 +17,19 @@ MODEL_PATH = os.path.join(model_dir, "best_model1.pkl")
 ENCODER_PATH = os.path.join(model_dir, "encoder.pkl")
 SCALER_PATH = os.path.join(model_dir, "scaler.pkl")
 FEATURE_PATH = os.path.join(model_dir, "featureorder.pkl")
+
 # Load model, encoder, and scaler
 try:
     model = joblib.load(MODEL_PATH)
     ohe = joblib.load(ENCODER_PATH)
     scaler = joblib.load(SCALER_PATH)
-    feature_order = joblib.load(FEATURE_PATH)
+    feature_order = joblib.load(FEATURE_PATH)  # Ensure consistent order
     print("✅ Model, encoder, and scaler loaded successfully!")
 except Exception as e:
     print(f"❌ Error loading model or transformers: {e}")
     exit(1)
 
-# Define features
+# Feature categories
 categorical_features = ['Venue_State', 'Venue_City']
 boolean_features = [
     'Is_Midwest', 'Is_Northeast', 'Is_South', 'Is_West',
@@ -50,7 +51,7 @@ numerical_features = [
 app = Flask(__name__)
 
 def predict_time_series_for_bins(user_input):
-    """Processes user input, scales & encodes it, and makes predictions."""
+    """Preprocesses input, scales & encodes, ensures feature order, and makes predictions."""
     bins = np.arange(0.1, 1.1, 0.1)
 
     # Convert input dictionary to DataFrame
@@ -68,6 +69,9 @@ def predict_time_series_for_bins(user_input):
     for col in categorical_features:
         if col not in repeated_data.columns:
             repeated_data[col] = "Unknown"  # Default category
+
+    # Ensure feature order
+    repeated_data = repeated_data[feature_order]
 
     # Transform input
     new_event_encoded = ohe.transform(repeated_data[categorical_features])
@@ -120,22 +124,20 @@ def index():
                 elif key in numerical_features:
                     user_input[key] = float(user_input[key])  # Convert numbers
 
-            # Convert input to DataFrame and enforce column order
+            # Ensure feature order
             new_event_data_template = pd.DataFrame([user_input])
-            new_event_data_template = new_event_data_template[feature_order]  # Ensure correct order
+            new_event_data_template = new_event_data_template[feature_order]
 
-            # Transform input
-            new_event_encoded = ohe.transform(new_event_data_template[categorical_features])
-            new_event_scaled = scaler.transform(new_event_data_template[numerical_features + boolean_features])
-            X_new = np.hstack([new_event_encoded, new_event_scaled])
+            # Predict and transform input
+            results_df, transformed_inputs = predict_time_series_for_bins(user_input)
 
-            # Predict and generate results
-            results_df = pd.DataFrame({'Bin': np.arange(0.1, 1.1, 0.1), 'Predicted_Cumulative_Tickets_Sold': model.predict(X_new)})
+            # Generate plot
             plot_url = plot_predictions(results_df)
 
         except Exception as e:
             return jsonify({"error": f"❌ Error processing request: {e}"}), 400
 
     return render_template("index.html", plot_url=plot_url, transformed_inputs=transformed_inputs)
+
 if __name__ == "__main__":
     app.run(debug=True)
