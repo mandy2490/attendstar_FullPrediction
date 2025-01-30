@@ -8,7 +8,7 @@ from io import BytesIO
 import base64
 
 # Ensure the saved_models directory exists
-model_dir = "saved_models"
+model_dir = "saved_model"
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
 
